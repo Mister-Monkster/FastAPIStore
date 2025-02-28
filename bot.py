@@ -182,15 +182,8 @@ async def is_photo(message: Message):
 async def catalog(call: CallbackQuery, state: FSMContext, session: AsyncSession):
     category = call.data.split('catalog_')[1]
     total_pages = (await total_rows(ProductsModel, session) + 2) // 3
-    inline_kb_list = [
-        [InlineKeyboardButton(text="Убрать список", callback_data='delete_list')]
-    ]
     offset = 0
     chat_id = call.message.chat.id
-    if total_pages > 1:
-        inline_kb_list.append([InlineKeyboardButton(text="следующая страница",
-                                                    callback_data=f'page_{offset + 1}')])
-    kb = InlineKeyboardMarkup(inline_keyboard=inline_kb_list)
     data = await products(session, category, offset=offset)
     messages = await page_view(bot, data, chat_id, total_pages, offset, offset)
     await state.update_data(total=total_pages, messages=messages, category=category)
@@ -202,12 +195,8 @@ async def page_handler(call: CallbackQuery, state: FSMContext, session: AsyncSes
     page_num = int(call.data.split('page_')[1])
     total_pages = state_data['total']
     category = state_data['category']
-    inline_kb_list = [
-        [InlineKeyboardButton(text="Убрать список", callback_data='delete_list')]
-    ]
     chat_id = call.message.chat.id
     offset = page_num * 3
-
     data = await products(session, category, offset=offset)
     messages = state_data['messages']
     await delete_old(chat_id, messages, bot)
