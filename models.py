@@ -1,8 +1,6 @@
-import enum
 import datetime
+import enum
 from typing import Annotated
-
-from dataclasses import dataclass
 
 from pydantic import UUID1
 from sqlalchemy import ForeignKey, String, CheckConstraint, text

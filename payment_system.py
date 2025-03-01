@@ -1,16 +1,12 @@
+import os
 import uuid
 
-from sqlalchemy.ext.asyncio import AsyncSession
-from yoomoney import Authorize, Quickpay
 from dotenv import load_dotenv
-import os
 from yoomoney import Client
-import requests
+from yoomoney import Quickpay
 
-from models import PaymentsModel
 from queries import payment_save
-
-from schemas import ProductsGet, PaymentsPost
+from schemas import ProductsGet
 
 load_dotenv()
 

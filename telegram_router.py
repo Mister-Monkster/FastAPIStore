@@ -9,18 +9,14 @@ from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message, KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove, InlineKeyboardButton, \
     InlineKeyboardMarkup, CallbackQuery
 from dotenv import load_dotenv
-from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from database import async_session
 from models import ProductsModel
 from payment_system import check_status
 from queries import total_rows
-from router import new_product, products, payment, get_keys, all_products, post_keys_from_file
-from schemas import ProductPost, ProductsGet
-from utils import delete_old, page_view, all_page_view
-from contextlib import contextmanager
-from product_service import ProductService
+from router import new_product, payment, get_keys, post_keys_from_file
+from schemas import ProductPost
+from utils import delete_old, page_view, all_page_view, get_all_products_for_bot, get_products_for_bot
 
 load_dotenv()
 TELEGRAM_BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -28,26 +24,6 @@ TELEGRAM_BOT_TOKEN = os.getenv("BOT_TOKEN")
 bot = Bot(token=TELEGRAM_BOT_TOKEN)
 router = Router()
 whitelist = [5863456999]
-
-
-async def get_products_for_bot(category: str, offset: int = 0) -> list[ProductsGet]:
-    async with async_session() as session:
-        redis = Redis.from_url("redis://localhost:6379", decode_responses=True)
-        try:
-            service = ProductService(session, redis)
-            return await products(category, offset=offset, service=service)
-        finally:
-            await redis.close()
-
-
-async def get_all_products_for_bot( offset: int = 0) -> list[ProductsGet]:
-    async with async_session() as session:
-        redis = Redis.from_url("redis://localhost:6379", decode_responses=True)
-        try:
-            service = ProductService(session, redis)
-            return await all_products(offset=offset, service=service)
-        finally:
-            await redis.close()
 
 
 class AddProductState(StatesGroup):
