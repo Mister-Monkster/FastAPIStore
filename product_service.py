@@ -1,9 +1,8 @@
 import json
-from typing import Optional
 
+from redis.asyncio import Redis
 from sqlalchemy import select, func, asc
 from sqlalchemy.ext.asyncio import AsyncSession
-from redis.asyncio import Redis
 
 from models import ProductsModel, KeysModel
 from schemas import ProductsGet

@@ -1,21 +1,15 @@
-import hashlib
-import json
-import os
-from contextlib import asynccontextmanager
-
-import redis
-from typing import Annotated
-from fastapi import APIRouter, Depends, Query, HTTPException, UploadFile
 import logging
-from redis.asyncio import Redis
+import os
+from typing import Annotated
 
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from fastapi import APIRouter, Depends, Query
+from redis.asyncio import Redis
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import async_session
 from payment_system import make_payment
 from product_service import ProductService
-
-from queries import add_product, add_key, select_products, select_key, get_prod_by_id, payment_save, select_all_products
+from queries import add_product, add_key, select_key, get_prod_by_id, payment_save
 from schemas import ProductPost, KeysPost, ProductsGet, KeysGet, PaymentsPost
 
 logger = logging.getLogger('api')

@@ -1,6 +1,5 @@
 
 from pydantic import BaseModel, UUID1
-from uuid import UUID
 
 
 class ProductPost(BaseModel):
