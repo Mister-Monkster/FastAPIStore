@@ -224,7 +224,7 @@ async def buy_product(call: CallbackQuery, state: FSMContext, session: AsyncSess
 
 
 @router.callback_query(F.data.startswith('check_'))
-async def check(call: CallbackQuery, state: FSMContext, session: AsyncSession):
+async def check(call: CallbackQuery, session: AsyncSession):
     label = uuid.UUID(call.data.split('_')[1])
     prodict_id = int(call.data.split('_')[2])
     user_id = call.from_user.id
