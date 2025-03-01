@@ -32,7 +32,7 @@ async def select_products(session, category, limit, offset) -> list[ProductsGet]
         model_dict['remainder'] = product[1]
         res.append(model_dict)
     products_schema = [ProductsGet.model_validate(product) for product in res]
-    return res
+    return products_schema
 
 
 async def select_all_products(session, limit, offset) -> list[ProductsGet]:
@@ -55,7 +55,7 @@ async def select_all_products(session, limit, offset) -> list[ProductsGet]:
         res.append(model_dict)
 
     products_schema = [ProductsGet.model_validate(product) for product in res]
-    return res
+    return products_schema
 
 
 async def total_rows(model, session):

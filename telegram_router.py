@@ -9,15 +9,18 @@ from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message, KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove, InlineKeyboardButton, \
     InlineKeyboardMarkup, CallbackQuery
 from dotenv import load_dotenv
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
-
+from database import async_session
 from models import ProductsModel
 from payment_system import check_status
 from queries import total_rows
 from router import new_product, products, payment, get_keys, all_products, post_keys_from_file
-from schemas import ProductPost
+from schemas import ProductPost, ProductsGet
 from utils import delete_old, page_view, all_page_view
+from contextlib import contextmanager
+from product_service import ProductService
 
 load_dotenv()
 TELEGRAM_BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -25,6 +28,26 @@ TELEGRAM_BOT_TOKEN = os.getenv("BOT_TOKEN")
 bot = Bot(token=TELEGRAM_BOT_TOKEN)
 router = Router()
 whitelist = [5863456999]
+
+
+async def get_products_for_bot(category: str, offset: int = 0) -> list[ProductsGet]:
+    async with async_session() as session:
+        redis = Redis.from_url("redis://localhost:6379", decode_responses=True)
+        try:
+            service = ProductService(session, redis)
+            return await products(category, offset=offset, service=service)
+        finally:
+            await redis.close()
+
+
+async def get_all_products_for_bot( offset: int = 0) -> list[ProductsGet]:
+    async with async_session() as session:
+        redis = Redis.from_url("redis://localhost:6379", decode_responses=True)
+        try:
+            service = ProductService(session, redis)
+            return await all_products(offset=offset, service=service)
+        finally:
+            await redis.close()
 
 
 class AddProductState(StatesGroup):
@@ -64,22 +87,21 @@ async def add_keys_handler(message: Message, state: FSMContext, session: AsyncSe
     if message.from_user.id not in whitelist:
         return None
     total_pages = (await total_rows(ProductsModel, session) + 2) // 3
-    print(total_pages)
     offset = 0
     chat_id = message.chat.id
-    data = await all_products(session, offset=offset)
+    data = await get_all_products_for_bot(offset=offset)
     messages = await all_page_view(bot, data, chat_id, total_pages, offset, offset)
     await state.update_data(total=total_pages, messages=messages)
 
 
 @router.callback_query(F.data.startswith('all_pages_'))
-async def page_handler(call: CallbackQuery, state: FSMContext, session: AsyncSession):
+async def page_handler(call: CallbackQuery, state: FSMContext):
     state_data = await state.get_data()
     page_num = int(call.data.split('all_pages_')[1])
     total_pages = state_data['total']
     chat_id = call.message.chat.id
     offset = page_num * 3
-    data = await all_products(session, offset=offset)
+    data = await get_all_products_for_bot(offset=offset)
     messages = state_data['messages']
     await delete_old(chat_id, messages, bot)
     messages = await all_page_view(bot, data, chat_id, total_pages, page_num, offset)
@@ -174,20 +196,20 @@ async def catalog(call: CallbackQuery, state: FSMContext, session: AsyncSession)
     total_pages = (await total_rows(ProductsModel, session) + 2) // 3
     offset = 0
     chat_id = call.message.chat.id
-    data = await products(session, category, offset=offset)
+    data = await get_products_for_bot(category, offset)
     messages = await page_view(bot, data, chat_id, total_pages, offset, offset)
     await state.update_data(total=total_pages, messages=messages, category=category)
 
 
 @router.callback_query(F.data.startswith('page_'))
-async def page_handler(call: CallbackQuery, state: FSMContext, session: AsyncSession):
+async def page_handler(call: CallbackQuery, state: FSMContext):
     state_data = await state.get_data()
     page_num = int(call.data.split('page_')[1])
     total_pages = state_data['total']
     category = state_data['category']
     chat_id = call.message.chat.id
     offset = page_num * 3
-    data = await products(session, category, offset=offset)
+    data = await get_products_for_bot(category, offset=offset)
     messages = state_data['messages']
     await delete_old(chat_id, messages, bot)
     messages = await page_view(bot, data, chat_id, total_pages, page_num, offset)
@@ -197,10 +219,13 @@ async def page_handler(call: CallbackQuery, state: FSMContext, session: AsyncSes
 @router.callback_query(F.data == 'delete_list')
 async def delete_catalog(call: CallbackQuery, state: FSMContext):
     data = await state.get_data()
-    data = data['messages']
-    chat_id = call.message.chat.id
-    await delete_old(chat_id, data, bot)
-    await state.clear()
+    try:
+        data = data['messages']
+        chat_id = call.message.chat.id
+        await delete_old(chat_id, data, bot)
+        await state.clear()
+    except:
+        await call.answer('К сожалению я не могу удалить эти сообщения')
 
 
 @router.callback_query(F.data.startswith('buy_'))

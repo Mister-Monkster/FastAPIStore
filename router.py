@@ -1,27 +1,67 @@
+import hashlib
+import json
 import os
+from contextlib import asynccontextmanager
+
+import redis
 from typing import Annotated
 from fastapi import APIRouter, Depends, Query, HTTPException, UploadFile
+import logging
+from redis.asyncio import Redis
 
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from database import async_session
 from payment_system import make_payment
+from product_service import ProductService
 
 from queries import add_product, add_key, select_products, select_key, get_prod_by_id, payment_save, select_all_products
 from schemas import ProductPost, KeysPost, ProductsGet, KeysGet, PaymentsPost
 
+logger = logging.getLogger('api')
 
-async def get_session():
+
+async def get_session() -> AsyncSession:
     async with async_session() as session:
-        yield session
+        try:
+            yield session
+        except Exception as e:
+            await session.rollback()
+            raise e
+        finally:
+            await session.close()
 
 
+async def get_redis():
+    redis = Redis.from_url("redis://localhost:6379" ,
+                           decode_responses=True,
+                           socket_timeout=5,
+                           socket_connect_timeout=5,
+                           retry_on_timeout=True,
+                           max_connections=10)
+    try:
+        yield redis
+    finally:
+        await redis.close()
+
+
+RedisDep = Annotated[Redis, Depends(get_redis)]
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
 
 router = APIRouter(
     prefix="",
     tags=["Магазин"],
 )
+
+
+async def get_product_service(
+    session: SessionDep,
+    redis: RedisDep
+) -> ProductService:
+    return ProductService(session, redis)
+
+
+ProductServiceDep = Depends(get_product_service)
 
 
 @router.post("/add_products")
@@ -37,14 +77,20 @@ async def new_key(keys: Annotated[KeysPost, Query()], session: SessionDep):
 
 
 @router.get("/get_products")
-async def products(session: SessionDep, category, limit: int = 3, offset: int = 0) -> list[ProductsGet]:
-    result = await select_products(session, category, limit, offset)
+async def products(category,
+                   limit: int = 3,
+                   offset: int = 0,
+                    service: ProductService = ProductServiceDep
+                   ) -> list[ProductsGet]:
+    result = await service.get_products(category, limit, offset)
     return result
 
 
 @router.get("/get_all_products")
-async def all_products(session: SessionDep, limit: int = 3, offset: int = 0) -> list[ProductsGet]:
-    result = await select_all_products(session, limit, offset)
+async def all_products(limit: int = 3,
+                       offset: int = 0,
+                       service: ProductService = ProductServiceDep) -> list[ProductsGet]:
+    result = await service.get_all_products(limit, offset)
     return result
 
 

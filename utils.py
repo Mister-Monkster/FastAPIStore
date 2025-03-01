@@ -2,6 +2,8 @@ from aiogram.enums import ParseMode
 from aiogram.fsm.context import FSMContext
 from aiogram.types import FSInputFile, InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
 
+from schemas import ProductsGet
+
 
 async def delete_old(chat_id, messages: list, bot):
     ids = []
@@ -14,14 +16,18 @@ async def page_view(bot, data, chat_id, total_pages, page_num, offset):
     messages = []
     if data:
         for product in data:
-            image = FSInputFile(product['image'])
-            text = (f"<b>{product['title']}</b>\n"
-                    f"{product['description']}\n\n"
-                    f"Цена: {product['price']}RUB\n"
-                    f"Коллиество штук {product['remainder']}"
+            if not isinstance(product, dict):
+                product_dict = product.model_dump()
+            else:
+                product_dict = product
+            image = FSInputFile(product_dict['image'])
+            text = (f"<b>{product_dict['title']}</b>\n"
+                    f"{product_dict['description']}\n\n"
+                    f"Цена: {product_dict['price']}RUB\n"
+                    f"Коллиество штук {product_dict['remainder']}"
                     )
             inline_kb_list = [
-                [InlineKeyboardButton(text='Купить', callback_data=f'buy_{product['id']}')]
+                [InlineKeyboardButton(text='Купить', callback_data=f'buy_{product_dict['id']}')]
 
             ]
             if (page_num + 1 == total_pages) and (len(messages) == len(data) - 1):
@@ -59,18 +65,22 @@ async def page_view(bot, data, chat_id, total_pages, page_num, offset):
         await bot.send_message(chat_id, "В данной категории отсутствуют товары. Возможно они появятся позже")
 
 
-async def all_page_view(bot, data, chat_id, total_pages, page_num, offset):
+async def all_page_view(bot,  data, chat_id, total_pages, page_num, offset):
     messages = []
     if data:
         for product in data:
-            image = FSInputFile(product['image'])
-            text = (f"<b>{product['title']}</b>\n"
-                    f"{product['description']}\n\n"
-                    f"Цена: {product['price']}RUB\n"
-                    f"Коллиество штук {product['remainder']}"
+            if not isinstance(product, dict):
+                product_dict = product.model_dump()
+            else:
+                product_dict = product
+            image = FSInputFile(product_dict['image'])
+            text = (f"<b>{product_dict['title']}</b>\n"
+                    f"{product_dict['description']}\n\n"
+                    f"Цена: {product_dict['price']}RUB\n"
+                    f"Коллиество штук {product_dict['remainder']}"
                     )
             inline_kb_list = [
-                [InlineKeyboardButton(text='Выбрать', callback_data=f'pick_{product['id']}')]
+                [InlineKeyboardButton(text='Выбрать', callback_data=f'pick_{product_dict['id']}')]
 
             ]
             if (page_num + 1 == total_pages) and (len(messages) == len(data) - 1):
