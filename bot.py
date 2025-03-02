@@ -21,9 +21,6 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(os.name)
 
 
-
-
-
 async def run_bot():
     dp.include_router(router)
     await dp.start_polling(bot)

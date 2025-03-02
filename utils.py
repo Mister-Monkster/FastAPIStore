@@ -99,8 +99,6 @@ async def all_page_view(bot, data, chat_id, total_pages, page_num, offset):
                 inline_kb_list.append([InlineKeyboardButton(text="Убрать список",
                                                             callback_data=f'delete_list')])
             elif len(messages) == len(data) - 1:
-                inline_kb_list.append([InlineKeyboardButton(text="Cледующая страница",
-                                                            callback_data=f'all_pages_{offset + 1}')])
                 inline_kb_list.append([InlineKeyboardButton(text="Убрать список",
                                                             callback_data=f'delete_list')])
 
