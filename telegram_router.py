@@ -79,7 +79,7 @@ async def page_handler(call: CallbackQuery, state: FSMContext):
     offset = page_num * 3
     data = await get_all_products_for_bot(offset=offset)
     messages = state_data['messages']
-    await delete_old(chat_id, messages, bot)
+    await delete_old(chat_id,  bot)
     messages = await all_page_view(bot, data, chat_id, total_pages, page_num, offset)
     await state.update_data(messages=messages)
 

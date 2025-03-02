@@ -27,12 +27,8 @@ async def get_session() -> AsyncSession:
 
 
 async def get_redis():
-    redis = Redis.from_url("redis://localhost:6379" ,
-                           decode_responses=True,
-                           socket_timeout=5,
-                           socket_connect_timeout=5,
-                           retry_on_timeout=True,
-                           max_connections=10)
+    redis = Redis.from_url("redis://localhost:6379",
+                           decode_responses=True)
     try:
         yield redis
     finally:
